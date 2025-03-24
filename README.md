@@ -1,5 +1,7 @@
 # AI Forex Trading Bot
 
+## Project under development
+
 ## Overview
 This project is an AI-powered Forex trading bot using a Simple Moving Average (SMA) Crossover strategy. It performs backtesting, evaluates the results, and visualizes the performance using Plotly.
 
