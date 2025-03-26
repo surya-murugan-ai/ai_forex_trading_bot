@@ -1,12 +1,33 @@
 import pandas as pd
 import plotly.graph_objects as go
+import os
+import json
+from pathlib import Path
 
-#display all the rows without truncation
-pd.set_option('display.max_rows',None)
-pd.set_option('display.max_columns',None)
+# Load Configuration
+config_path = Path("config/config.json")
+if not config_path.exists():
+    raise FileNotFoundError(f"Config file not found at {config_path}")
+
+with open(config_path, 'r') as file:
+    config = json.load(file)
+
+# Extract values from config
+short_window = config.get('short_window', 10)
+long_window = config.get('long_window', 50)
+data_path = "D:\\Coding\\ai_trading_bot\\ai_forex_trading_bot\\data\\gbpusd_data_OHLC_1H.parquet_56.parquet"
+chart_width = config.get('chart_width', 1200)
+chart_height = config.get('chart_height', 600)
+
+# # Check if data exists
+# if not data_path.exists():
+#     raise FileNotFoundError(f"Data file not found at {data_path}")
+
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
 
 class SmaCrossoverStrategy:
-    def __init__(self, short_window=10, long_window=50):
+    def __init__(self, short_window, long_window):
         self.short_window = short_window
         self.long_window = long_window
 
@@ -17,31 +38,22 @@ class SmaCrossoverStrategy:
 
         # Generate buy/sell signals
         data['Signal'] = 0
-        data.loc[data['SMA_Short'] > data['SMA_Long'], 'Signal'] = 1
-        data.loc[data['SMA_Short'] <= data['SMA_Long'], 'Signal'] = -1
-        
+        data.loc[(data.index >= self.long_window) & (data['SMA_Short'] > data['SMA_Long']), 'Signal'] = 1
+        data.loc[(data.index >= self.long_window) & (data['SMA_Short'] <= data['SMA_Long']), 'Signal'] = -1
+
         return data
 
-# Load the data
-df = pd.read_parquet('/home/sapat/learning ML/ai_forex_trading_bot/data/gbpusd_data_OHLC_1H.parquet_56.parquet')
-
-# Remove weekends (No trading on Saturdays and Sundays)
+# Load Data
+df = pd.read_parquet(data_path)
 df = df[~df['DateTime'].dt.weekday.isin([5, 6])]
 
-# Verify missing data
+# Check for missing values
 print("Missing values per column: ")
 print(df.isnull().sum())
-# print(df.tail(100))
 
-# Apply SMA strategy
-strategy = SmaCrossoverStrategy()
+# Apply SMA Strategy
+strategy = SmaCrossoverStrategy(short_window, long_window)
 df = strategy.generate_signals(df)
-
-# Visualize data with SMA
-
-#line graph
-# fig = px.line(df, x='DateTime', y=['Close', 'SMA_Short', 'SMA_Long'], 
-#                title='GBP/USD Closing Price with SMA Crossover')
 
 # Plot Candlestick Chart with SMAs
 fig = go.Figure(data=[go.Candlestick(
@@ -53,30 +65,23 @@ fig = go.Figure(data=[go.Candlestick(
     name="GBP/USD"
 )])
 
-# Plot Short-term SMA
-fig.add_trace(go.Scatter(x=df['DateTime'],y=df['SMA_Short'],mode='lines',
-                         name='10 SMA',line=dict(color='blue')))
+fig.add_trace(go.Scatter(x=df['DateTime'], y=df['SMA_Short'], mode='lines',
+                         name=f'{short_window} SMA', line=dict(color='blue')))
 
-fig.add_trace(go.Scatter(x=df['DateTime'],y=df['SMA_Long'],mode='lines',
-                         name='50 SMA', line=dict(color='red')))
+fig.add_trace(go.Scatter(x=df['DateTime'], y=df['SMA_Long'], mode='lines',
+                         name=f'{long_window} SMA', line=dict(color='red')))
 
 fig.update_layout(
-    title='GBP/USD Candlestick Charts',
-    xaxis_title='DataTIme',
+    title='GBP/USD Candlestick Chart with SMA Crossover',
+    xaxis_title='DateTime',
     yaxis_title='Price',
     xaxis_rangeslider_visible=True,
-    xaxis_rangeslider_thickness=0.1,
-    template="plotly_dark",
-    dragmode="zoom", #enable zooming
-    hovermode = "x", #display hover information
-    width=1200,  # Set width (in pixels)
-    height=600, 
-    margin = dict(l=50,r=50,t=50,b=50)
-
+    width=chart_width,
+    height=chart_height,
+    template="plotly_dark"
 )
 
 fig.show()
 
-# Optional: Display a sample of the data
-# print(df[['DateTime']].head())
+# Display Result Data
 print(df[['DateTime', 'Close', 'SMA_Short', 'SMA_Long', 'Signal']].head())

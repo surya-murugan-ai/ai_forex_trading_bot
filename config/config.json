@@ -1,0 +1,22 @@
+{
+    "data": {
+      "input_file": "D:\\Coding\\ai_trading_bot\\ai_forex_trading_bot\\data\\gbpusd_data_OHLC_1H.parquet_56.parquet"
+    },
+    "strategy": {
+      "short_window": 10,
+      "long_window": 50
+    },
+    "visualization": {
+      "plot_type": "candlestick",
+      "sma_colors": {
+        "short": "blue",
+        "long": "red"
+      },
+      "width": 1200,
+      "height": 600,
+      "theme": "plotly_dark",
+      "xaxis_rangeslider_visible": true,
+      "xaxis_rangeslider_thickness": 0.1
+    }
+  }
+  
